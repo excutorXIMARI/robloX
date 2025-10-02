@@ -1,0 +1,214 @@
+-- Grow-a-Garden Script
+-- Автоматизация для игры Grow-a-Garden
+
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Grow-a-Garden Script", "DarkTheme")
+
+-- Main Variables
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Floating Menu Button
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FloatingMenu"
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local menuButton = Instance.new("TextButton")
+menuButton.Size = UDim2.new(0, 50, 0, 50)
+menuButton.Position = UDim2.new(1, -60, 0.5, -25)
+menuButton.AnchorPoint = Vector2.new(0, 0.5)
+menuButton.Text = "MENU"
+menuButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+menuButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+menuButton.BorderSizePixel = 0
+menuButton.ZIndex = 10
+menuButton.Parent = screenGui
+
+-- Auto Farm Tab
+local AutoFarmTab = Window:NewTab("Auto Farm")
+local AutoFarmSection = AutoFarmTab:NewSection("Auto Farming Functions")
+
+-- Auto Sell Function
+AutoFarmSection:NewToggle("Auto Sell", "Automatically sells seeds/fruits", function(state)
+    if state then
+        _G.AutoSell = true
+        while _G.AutoSell do
+            wait(1)
+            
+            -- Телепортация к NPC продавцу
+            local sellNPC = workspace:FindFirstChild("SellNPC") or workspace:FindFirstChild("Merchant")
+            if sellNPC then
+                humanoidRootPart.CFrame = sellNPC.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
+            end
+            
+            -- Автоматическая продажа
+            game:GetService("ReplicatedStorage"):WaitForChild("SellEvent"):FireServer()
+            
+            -- Телепортация обратно на базу
+            local base = workspace:FindFirstChild("Base") or workspace:FindFirstChild("Spawn")
+            if base then
+                humanoidRootPart.CFrame = base.CFrame
+            end
+            
+            wait(5) -- Задержка между продажами
+        end
+    else
+        _G.AutoSell = false
+    end
+end)
+
+-- Auto Spawn Function
+AutoFarmSection:NewToggle("Auto Spawn", "Automatically places fruits in garden", function(state)
+    if state then
+        _G.AutoSpawn = true
+        while _G.AutoSpawn do
+            wait(1)
+            
+            -- Получение всех фруктов из инвентаря
+            local fruits = {"Apple", "Orange", "Banana", "Strawberry", "Watermelon"}
+            
+            for _, fruitName in pairs(fruits) do
+                -- Размещение фруктов в случайных местах
+                local gardenPlot = workspace:FindFirstChild("Garden") or workspace:FindFirstChild("Plot")
+                if gardenPlot then
+                    -- Создание фрукта в случайной позиции
+                    game:GetService("ReplicatedStorage"):WaitForChild("PlantEvent"):FireServer(
+                        fruitName,
+                        gardenPlot.Position + Vector3.new(
+                            math.random(-20, 20),
+                            0,
+                            math.random(-20, 20)
+                        )
+                    )
+                end
+            end
+            
+            wait(3) -- Задержка между спавном
+        end
+    else
+        _G.AutoSpawn = false
+    end
+end)
+
+-- Money Tab
+local MoneyTab = Window:NewTab("Money")
+local MoneySection = MoneyTab:NewSection("Money Functions")
+
+-- Visual Money Dup
+MoneySection:NewButton("Visual Money Dup", "Adds visual money (1B)", function()
+    -- Визуальное добавление денег (клиентская сторона)
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if leaderstats then
+        local money = leaderstats:FindFirstChild("Money") or leaderstats:FindFirstChild("Cash")
+        if money then
+            money.Value = money.Value + 1000000000
+        end
+    end
+    
+    -- Создание визуального эффекта
+    local moneyEffect = Instance.new("BillboardGui")
+    moneyEffect.Size = UDim2.new(0, 200, 0, 50)
+    moneyEffect.Adornee = humanoidRootPart
+    moneyEffect.Parent = humanoidRootPart
+    
+    local moneyText = Instance.new("TextLabel")
+    moneyText.Size = UDim2.new(1, 0, 1, 0)
+    moneyText.Text = "+1,000,000,000$"
+    moneyText.TextColor3 = Color3.fromRGB(0, 255, 0)
+    moneyText.TextScaled = true
+    moneyText.BackgroundTransparency = 1
+    moneyText.Parent = moneyEffect
+    
+    -- Анимация появления
+    moneyEffect.Enabled = true
+    wait(3)
+    moneyEffect.Enabled = false
+    moneyEffect:Destroy()
+end)
+
+-- Teleport Tab
+local TeleportTab = Window:NewTab("Teleport")
+local TeleportSection = TeleportTab:NewSection("Teleport Functions")
+
+TeleportSection:NewButton("Teleport to Sell", "Teleport to selling area", function()
+    local sellArea = workspace:FindFirstChild("SellArea") or workspace:FindFirstChild("Market")
+    if sellArea then
+        humanoidRootPart.CFrame = sellArea.CFrame
+    end
+end)
+
+TeleportSection:NewButton("Teleport to Base", "Teleport back to base", function()
+    local base = workspace:FindFirstChild("Base") or workspace:FindFirstChild("Spawn")
+    if base then
+        humanoidRootPart.CFrame = base.CFrame
+    end
+end)
+
+TeleportSection:NewButton("Teleport to Garden", "Teleport to garden", function()
+    local garden = workspace:FindFirstChild("Garden") or workspace:FindFirstChild("Plot")
+    if garden then
+        humanoidRootPart.CFrame = garden.CFrame
+    end
+end)
+
+-- Settings Tab
+local SettingsTab = Window:NewTab("Settings")
+local SettingsSection = SettingsTab:NewSection("Script Settings")
+
+SettingsSection:NewKeybind("Toggle GUI", "Toggle the main GUI", Enum.KeyCode.RightShift, function()
+	Library:ToggleUI()
+end)
+
+-- Menu Button Functionality
+local menuOpen = false
+menuButton.MouseButton1Click:Connect(function()
+    menuOpen = not menuOpen
+    Library:ToggleUI()
+end)
+
+-- Drag functionality for menu button
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    menuButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+menuButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = menuButton.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+menuButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Notification
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Grow-a-Garden Script",
+    Text = "Script loaded successfully! Press MENU button to open.",
+    Duration = 5
+})
+
+print("Grow-a-Garden Script loaded! Created by GitHub")
